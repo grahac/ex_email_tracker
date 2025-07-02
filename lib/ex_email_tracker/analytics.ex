@@ -9,41 +9,27 @@ defmodule ExEmailTracker.Analytics do
   Gets summary statistics for emails.
   """
   def get_summary_stats(opts \\ []) do
-    query = base_query(opts)
+    # Single optimized query using conditional aggregation
+    stats = 
+      from es in base_query(opts),
+      left_join: e in EmailEvent, on: e.email_send_id == es.id,
+      select: %{
+        sent: count(es.id),
+        opened: count(fragment("DISTINCT CASE WHEN ? = 'opened' THEN ? END", e.event_type, e.email_send_id)),
+        clicked: count(fragment("DISTINCT CASE WHEN ? = 'clicked' THEN ? END", e.event_type, e.email_send_id)),
+        bounced: count(fragment("DISTINCT CASE WHEN ? = 'bounced' THEN ? END", e.event_type, e.email_send_id))
+      }
     
-    sent_count = repo().aggregate(query, :count)
-    
-    events_query = 
-      from e in EmailEvent,
-      join: es in EmailSend, on: e.email_send_id == es.id,
-      where: ^event_filter_conditions(opts)
-    
-    opened_count = 
-      events_query
-      |> where([e], e.event_type == "opened")
-      |> select([e], count(fragment("DISTINCT ?", e.email_send_id)))
-      |> repo().one()
-    
-    clicked_count = 
-      events_query
-      |> where([e], e.event_type == "clicked")
-      |> select([e], count(fragment("DISTINCT ?", e.email_send_id)))
-      |> repo().one()
-    
-    bounced_count = 
-      events_query
-      |> where([e], e.event_type == "bounced")
-      |> select([e], count(fragment("DISTINCT ?", e.email_send_id)))
-      |> repo().one()
+    result = repo().one(stats)
 
     %{
-      sent: sent_count,
-      opened: opened_count,
-      clicked: clicked_count,
-      bounced: bounced_count,
-      open_rate: calculate_rate(opened_count, sent_count),
-      click_rate: calculate_rate(clicked_count, sent_count),
-      bounce_rate: calculate_rate(bounced_count, sent_count)
+      sent: result.sent,
+      opened: result.opened,
+      clicked: result.clicked,
+      bounced: result.bounced,
+      open_rate: calculate_rate(result.opened, result.sent),
+      click_rate: calculate_rate(result.clicked, result.sent),
+      bounce_rate: calculate_rate(result.bounced, result.sent)
     }
   end
 
@@ -51,18 +37,16 @@ defmodule ExEmailTracker.Analytics do
   Gets email performance by type.
   """
   def get_performance_by_type(opts \\ []) do
+    # Optimized query using conditional aggregation
     query = 
       from es in base_query(opts),
-      left_join: opened in EmailEvent,
-        on: opened.email_send_id == es.id and opened.event_type == "opened",
-      left_join: clicked in EmailEvent,
-        on: clicked.email_send_id == es.id and clicked.event_type == "clicked",
+      left_join: e in EmailEvent, on: e.email_send_id == es.id,
       group_by: es.email_type,
       select: %{
         email_type: es.email_type,
         sent: count(es.id),
-        opened: count(fragment("DISTINCT ?", opened.email_send_id)),
-        clicked: count(fragment("DISTINCT ?", clicked.email_send_id))
+        opened: count(fragment("DISTINCT CASE WHEN ? = 'opened' THEN ? END", e.event_type, e.email_send_id)),
+        clicked: count(fragment("DISTINCT CASE WHEN ? = 'clicked' THEN ? END", e.event_type, e.email_send_id))
       }
     
     results = repo().all(query)
@@ -80,7 +64,10 @@ defmodule ExEmailTracker.Analytics do
   """
   def get_recent_activity(opts \\ []) do
     limit = Keyword.get(opts, :limit, 50)
+    # Cap limit to prevent performance issues
+    limit = min(limit, 1000)
     
+    # Optimized query using event-first approach for better performance
     from(e in EmailEvent,
       join: es in EmailSend, on: e.email_send_id == es.id,
       where: ^event_filter_conditions(opts),
@@ -156,6 +143,7 @@ defmodule ExEmailTracker.Analytics do
     from(es in EmailSend, where: ^filter_conditions(opts))
   end
 
+
   defp filter_conditions(opts) do
     conditions = true
     
@@ -163,7 +151,9 @@ defmodule ExEmailTracker.Analytics do
       if start_date = opts[:start_date] do
         dynamic([es], ^conditions and es.sent_at >= ^start_date)
       else
-        conditions
+        # Default to last 90 days to prevent full table scans
+        default_start = DateTime.add(DateTime.utc_now(), -90, :day)
+        dynamic([es], ^conditions and es.sent_at >= ^default_start)
       end
     
     conditions = 
@@ -204,7 +194,9 @@ defmodule ExEmailTracker.Analytics do
       if start_date = opts[:start_date] do
         dynamic([e, es], ^conditions and es.sent_at >= ^start_date)
       else
-        conditions
+        # Default to last 90 days to prevent full table scans
+        default_start = DateTime.add(DateTime.utc_now(), -90, :day)
+        dynamic([e, es], ^conditions and es.sent_at >= ^default_start)
       end
     
     conditions = 

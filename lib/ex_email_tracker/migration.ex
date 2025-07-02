@@ -42,6 +42,11 @@ defmodule ExEmailTracker.Migration do
     create index(:ex_email_sends, [:email_type])
     create index(:ex_email_sends, [:sent_at])
     create index(:ex_email_sends, [:recipient_id])
+    
+    # Composite indexes for analytics performance
+    create index(:ex_email_sends, [:email_type, :sent_at])
+    create index(:ex_email_sends, [:sent_at, :email_type])
+    create index(:ex_email_sends, [:recipient_id, :sent_at])
 
     # Create email events table
     create table(:ex_email_events) do
@@ -59,6 +64,11 @@ defmodule ExEmailTracker.Migration do
     create index(:ex_email_events, [:email_send_id])
     create index(:ex_email_events, [:event_type])
     create index(:ex_email_events, [:occurred_at])
+    
+    # Composite indexes for analytics joins
+    create index(:ex_email_events, [:email_send_id, :event_type])
+    create index(:ex_email_events, [:event_type, :occurred_at])
+    create index(:ex_email_events, [:occurred_at, :event_type])
 
     # Create email links table
     create table(:ex_email_links) do
