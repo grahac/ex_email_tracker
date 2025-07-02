@@ -32,32 +32,40 @@ defmodule ExEmailTracker.Plug.TrackUnsubscribe do
     })
 
     # Create unsubscribe record
-    create_unsubscribe_record(email_send)
+    {:ok, _} = create_unsubscribe_record(email_send)
 
-    # Return confirmation page
-    html_response = """
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <title>Unsubscribed</title>
-      <meta charset="utf-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1">
-      <style>
-        body { font-family: Arial, sans-serif; max-width: 600px; margin: 50px auto; padding: 20px; text-align: center; }
-        .success { color: #28a745; }
-      </style>
-    </head>
-    <body>
-      <h1 class="success">✓ Unsubscribed Successfully</h1>
-      <p>You have been unsubscribed from <strong>#{email_send.email_type}</strong> emails.</p>
-      <p>You will no longer receive emails of this type at <strong>#{email_send.recipient_email}</strong>.</p>
-    </body>
-    </html>
-    """
+    # Call the callback if configured
+    if callback = Application.get_env(:ex_email_tracker, :unsubscribe_callback) do
+      callback.(%{
+        email: email_send.recipient_email,
+        email_type: email_send.email_type,
+        recipient_id: email_send.recipient_id,
+        metadata: email_send.metadata
+      })
+    end
 
+    # Redirect to configured URL or default page
+    redirect_url = build_redirect_url(email_send)
+    
     conn
-    |> put_resp_content_type("text/html")
-    |> send_resp(200, html_response)
+    |> put_resp_header("location", redirect_url)
+    |> send_resp(302, "")
+  end
+  
+  defp build_redirect_url(email_send) do
+    case Application.get_env(:ex_email_tracker, :unsubscribe_redirect_url) do
+      nil -> 
+        # Default to a simple confirmation page if no URL configured
+        "#{ExEmailTracker.base_url()}/unsubscribe/success"
+        
+      url when is_binary(url) ->
+        # Simple string URL
+        url
+        
+      url_fn when is_function(url_fn, 1) ->
+        # Function that receives email_send and returns URL
+        url_fn.(email_send)
+    end
   end
 
   defp create_unsubscribe_record(email_send) do

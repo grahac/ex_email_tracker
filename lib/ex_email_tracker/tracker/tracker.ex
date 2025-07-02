@@ -11,22 +11,39 @@ defmodule ExEmailTracker.Tracker do
   Tracks an email by injecting tracking pixel and rewriting links.
   """
   def track_email(email, opts) do
-    if Keyword.get(opts, :skip_tracking, false) do
-      email
+    cond do
+      Keyword.get(opts, :skip_tracking, false) ->
+        email
+        
+      should_suppress_email?(email, opts) ->
+        # Return nil to indicate email should not be sent
+        nil
+        
+      true ->
+        opts = validate_opts!(opts)
+        
+        # Generate tracking ID
+        email_send_id = Ecto.UUID.generate()
+        
+        # Store email send record
+        {:ok, email_send} = create_email_send(email, email_send_id, opts)
+        
+        email
+        |> inject_tracking_pixel(email_send_id)
+        |> rewrite_links(email_send)
+        |> add_unsubscribe_link(email_send)
+        |> add_tracking_headers(email_send_id)
+    end
+  end
+  
+  defp should_suppress_email?(email, opts) do
+    if Application.get_env(:ex_email_tracker, :check_unsubscribes, false) do
+      %{to: [{_name, recipient_email}]} = email
+      email_type = Keyword.fetch!(opts, :email_type)
+      
+      ExEmailTracker.Unsubscribe.unsubscribed?(recipient_email, email_type)
     else
-      opts = validate_opts!(opts)
-      
-      # Generate tracking ID
-      email_send_id = Ecto.UUID.generate()
-      
-      # Store email send record
-      {:ok, email_send} = create_email_send(email, email_send_id, opts)
-      
-      email
-      |> inject_tracking_pixel(email_send_id)
-      |> rewrite_links(email_send)
-      |> add_unsubscribe_link(email_send)
-      |> add_tracking_headers(email_send_id)
+      false
     end
   end
 

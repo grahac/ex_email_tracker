@@ -129,7 +129,77 @@ config :ex_email_tracker,
   track_clicks: true,             # Enable/disable click tracking
   add_unsubscribe: true,          # Add unsubscribe links
   retention_days: 90,             # Auto-delete old data
-  anonymize_ips: true             # GDPR compliance
+  anonymize_ips: true,            # GDPR compliance
+  
+  # Unsubscribe handling
+  unsubscribe_redirect_url: "https://myapp.com/unsubscribe/success",
+  # Or use a function for dynamic URLs:
+  # unsubscribe_redirect_url: &MyApp.build_unsubscribe_url/1,
+  
+  # Callback when someone unsubscribes
+  unsubscribe_callback: &MyApp.handle_unsubscribe/1
+```
+
+### Unsubscribe Integration
+
+Configure callbacks to sync with your application:
+
+```elixir
+# In your application
+defmodule MyApp do
+  def handle_unsubscribe(%{email: email, email_type: type, recipient_id: id}) do
+    # Update your user preferences
+    Users.update_email_preferences(id, %{type => false})
+    
+    # Log the event
+    Logger.info("User #{id} unsubscribed from #{type} emails")
+  end
+  
+  def build_unsubscribe_url(email_send) do
+    # Dynamic URL based on email data
+    "https://myapp.com/settings/emails?unsubscribed=#{email_send.email_type}"
+  end
+end
+```
+
+### Automatic Unsubscribe Checking
+
+Enable automatic suppression of emails to unsubscribed users:
+
+```elixir
+config :ex_email_tracker,
+  check_unsubscribes: true  # Automatically suppress emails to unsubscribed users
+```
+
+When enabled, `ExEmailTracker.track/2` will return `nil` for unsubscribed recipients:
+
+```elixir
+# This will return nil if user is unsubscribed from marketing emails
+tracked_email = email |> ExEmailTracker.track(email_type: :marketing)
+
+if tracked_email do
+  Mailer.deliver(tracked_email)
+end
+```
+
+### Manual Unsubscribe Management
+
+Use the `ExEmailTracker.Unsubscribe` module for manual control:
+
+```elixir
+# Check if unsubscribed
+ExEmailTracker.Unsubscribe.unsubscribed?("user@example.com", :marketing)
+# => true/false
+
+# Manually unsubscribe
+ExEmailTracker.Unsubscribe.unsubscribe("user@example.com", :newsletter)
+
+# Resubscribe (e.g., from settings page)
+ExEmailTracker.Unsubscribe.resubscribe("user@example.com", :newsletter)
+
+# Get all unsubscribed types for a user
+ExEmailTracker.Unsubscribe.unsubscribed_types("user@example.com")
+# => ["marketing", "newsletter"]
 ```
 
 ## API Reference
