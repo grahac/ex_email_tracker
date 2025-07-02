@@ -9,28 +9,37 @@ defmodule ExEmailTracker.Analytics do
   Gets summary statistics for emails.
   """
   def get_summary_stats(opts \\ []) do
-    # Single optimized query using conditional aggregation
-    stats = 
-      from es in EmailSend,
-      left_join: e in EmailEvent, on: e.email_send_id == es.id,
-      where: ^filter_conditions(opts),
-      select: %{
-        sent: count(es.id),
-        opened: count(fragment("DISTINCT CASE WHEN ? = 'opened' THEN ? END", e.event_type, e.email_send_id)),
-        clicked: count(fragment("DISTINCT CASE WHEN ? = 'clicked' THEN ? END", e.event_type, e.email_send_id)),
-        bounced: count(fragment("DISTINCT CASE WHEN ? = 'bounced' THEN ? END", e.event_type, e.email_send_id))
-      }
+    # Get date range for filtering
+    {start_date, end_date} = get_date_range(opts)
     
-    result = repo().one(stats)
-
+    # Count total sent emails
+    sent_query = from es in EmailSend,
+      where: es.sent_at >= ^start_date and es.sent_at <= ^end_date,
+      select: count(es.id)
+    
+    sent_count = repo().one(sent_query)
+    
+    # Count events by type
+    events_query = from ev in EmailEvent,
+      join: es in EmailSend, on: ev.email_send_id == es.id,
+      where: es.sent_at >= ^start_date and es.sent_at <= ^end_date,
+      group_by: ev.event_type,
+      select: {ev.event_type, count(fragment("DISTINCT ?", ev.email_send_id))}
+    
+    event_counts = repo().all(events_query) |> Enum.into(%{})
+    
+    opened_count = Map.get(event_counts, "opened", 0)
+    clicked_count = Map.get(event_counts, "clicked", 0)
+    bounced_count = Map.get(event_counts, "bounced", 0)
+    
     %{
-      sent: result.sent,
-      opened: result.opened,
-      clicked: result.clicked,
-      bounced: result.bounced,
-      open_rate: calculate_rate(result.opened, result.sent),
-      click_rate: calculate_rate(result.clicked, result.sent),
-      bounce_rate: calculate_rate(result.bounced, result.sent)
+      sent: sent_count,
+      opened: opened_count,  
+      clicked: clicked_count,
+      bounced: bounced_count,
+      open_rate: calculate_rate(opened_count, sent_count),
+      click_rate: calculate_rate(clicked_count, sent_count),
+      bounce_rate: calculate_rate(bounced_count, sent_count)
     }
   end
 
@@ -38,26 +47,39 @@ defmodule ExEmailTracker.Analytics do
   Gets email performance by type.
   """
   def get_performance_by_type(opts \\ []) do
-    # Optimized query using conditional aggregation
-    query = 
-      from es in EmailSend,
-      left_join: e in EmailEvent, on: e.email_send_id == es.id,
-      where: ^filter_conditions(opts),
+    {start_date, end_date} = get_date_range(opts)
+    
+    # Get sent counts by email type
+    sent_query = from es in EmailSend,
+      where: es.sent_at >= ^start_date and es.sent_at <= ^end_date,
       group_by: es.email_type,
-      select: %{
-        email_type: es.email_type,
-        sent: count(es.id),
-        opened: count(fragment("DISTINCT CASE WHEN ? = 'opened' THEN ? END", e.event_type, e.email_send_id)),
-        clicked: count(fragment("DISTINCT CASE WHEN ? = 'clicked' THEN ? END", e.event_type, e.email_send_id))
+      select: {es.email_type, count(es.id)}
+    
+    sent_by_type = repo().all(sent_query) |> Enum.into(%{})
+    
+    # Get event counts by email type
+    events_query = from ev in EmailEvent,
+      join: es in EmailSend, on: ev.email_send_id == es.id,
+      where: es.sent_at >= ^start_date and es.sent_at <= ^end_date,
+      group_by: [es.email_type, ev.event_type],
+      select: {es.email_type, ev.event_type, count(fragment("DISTINCT ?", ev.email_send_id))}
+    
+    events_data = repo().all(events_query)
+    
+    # Build performance data by type
+    sent_by_type
+    |> Enum.map(fn {email_type, sent_count} ->
+      opened_count = get_event_count(events_data, email_type, "opened")
+      clicked_count = get_event_count(events_data, email_type, "clicked")
+      
+      %{
+        email_type: email_type,
+        sent: sent_count,
+        opened: opened_count,
+        clicked: clicked_count,
+        open_rate: calculate_rate(opened_count, sent_count),
+        click_rate: calculate_rate(clicked_count, sent_count)
       }
-    
-    results = repo().all(query)
-    
-    Enum.map(results, fn result ->
-      Map.merge(result, %{
-        open_rate: calculate_rate(result.opened, result.sent),
-        click_rate: calculate_rate(result.clicked, result.sent)
-      })
     end)
   end
 
@@ -65,28 +87,24 @@ defmodule ExEmailTracker.Analytics do
   Gets recent email activity.
   """
   def get_recent_activity(opts \\ []) do
-    limit = Keyword.get(opts, :limit, 50)
-    # Cap limit to prevent performance issues
-    limit = min(limit, 1000)
+    limit = Keyword.get(opts, :limit, 50) |> min(1000)
+    {start_date, end_date} = get_date_range(opts)
     
-    # Build the filters manually to ensure correct binding
-    filter_query = build_recent_activity_filters(opts)
-    
-    from(e in EmailEvent,
-      join: es in EmailSend, on: e.email_send_id == es.id,
-      where: ^filter_query,
-      order_by: [desc: e.occurred_at],
+    query = from ev in EmailEvent,
+      join: es in EmailSend, on: ev.email_send_id == es.id,
+      where: es.sent_at >= ^start_date and es.sent_at <= ^end_date,
+      order_by: [desc: ev.occurred_at],
       limit: ^limit,
       select: %{
-        id: e.id,
-        event_type: e.event_type,
-        occurred_at: e.occurred_at,
+        id: ev.id,
+        event_type: ev.event_type,
+        occurred_at: ev.occurred_at,
         email_type: es.email_type,
         recipient_email: es.recipient_email,
-        click_url: e.click_url
+        click_url: ev.click_url
       }
-    )
-    |> repo().all()
+    
+    repo().all(query)
   end
 
   @doc """
@@ -94,6 +112,7 @@ defmodule ExEmailTracker.Analytics do
   """
   def get_timeline_data(opts \\ []) do
     group_by = Keyword.get(opts, :group_by, :day)
+    {start_date, end_date} = get_date_range(opts)
     
     date_trunc = case group_by do
       :hour -> "hour"
@@ -102,21 +121,37 @@ defmodule ExEmailTracker.Analytics do
       :month -> "month"
     end
     
-    from(es in base_query(opts),
-      left_join: opened in EmailEvent,
-        on: opened.email_send_id == es.id and opened.event_type == "opened",
-      left_join: clicked in EmailEvent,
-        on: clicked.email_send_id == es.id and clicked.event_type == "clicked",
+    # Get sent counts by date
+    sent_query = from es in EmailSend,
+      where: es.sent_at >= ^start_date and es.sent_at <= ^end_date,
       group_by: fragment("date_trunc(?, ?)", ^date_trunc, es.sent_at),
-      order_by: fragment("date_trunc(?, ?)", ^date_trunc, es.sent_at),
-      select: %{
-        date: fragment("date_trunc(?, ?)", ^date_trunc, es.sent_at),
-        sent: count(es.id),
-        opened: count(fragment("DISTINCT ?", opened.email_send_id)),
-        clicked: count(fragment("DISTINCT ?", clicked.email_send_id))
+      select: {fragment("date_trunc(?, ?)", ^date_trunc, es.sent_at), count(es.id)}
+    
+    sent_by_date = repo().all(sent_query) |> Enum.into(%{})
+    
+    # Get event counts by date
+    events_query = from ev in EmailEvent,
+      join: es in EmailSend, on: ev.email_send_id == es.id,
+      where: es.sent_at >= ^start_date and es.sent_at <= ^end_date,
+      group_by: [fragment("date_trunc(?, ?)", ^date_trunc, es.sent_at), ev.event_type],
+      select: {fragment("date_trunc(?, ?)", ^date_trunc, es.sent_at), ev.event_type, count(fragment("DISTINCT ?", ev.email_send_id))}
+    
+    events_data = repo().all(events_query)
+    
+    # Build timeline data
+    sent_by_date
+    |> Enum.map(fn {date, sent_count} ->
+      opened_count = get_date_event_count(events_data, date, "opened")
+      clicked_count = get_date_event_count(events_data, date, "clicked")
+      
+      %{
+        date: date,
+        sent: sent_count,
+        opened: opened_count,
+        clicked: clicked_count
       }
-    )
-    |> repo().all()
+    end)
+    |> Enum.sort_by(& &1.date)
   end
 
   @doc """
@@ -126,12 +161,11 @@ defmodule ExEmailTracker.Analytics do
     email_send = repo().get(EmailSend, email_send_id)
     
     if email_send do
-      events = 
-        from(e in EmailEvent,
-          where: e.email_send_id == ^email_send_id,
-          order_by: [desc: e.occurred_at]
-        )
-        |> repo().all()
+      events_query = from ev in EmailEvent,
+        where: ev.email_send_id == ^email_send_id,
+        order_by: [desc: ev.occurred_at]
+      
+      events = repo().all(events_query)
       
       %{
         email_send: email_send,
@@ -143,97 +177,29 @@ defmodule ExEmailTracker.Analytics do
     end
   end
 
-  defp base_query(opts) do
-    from(es in EmailSend, where: ^filter_conditions(opts))
+  # Helper functions
+
+  defp get_date_range(opts) do
+    start_date = opts[:start_date] || DateTime.add(DateTime.utc_now(), -90, :day)
+    end_date = opts[:end_date] || DateTime.utc_now()
+    {start_date, end_date}
   end
 
-
-  defp filter_conditions(opts) do
-    conditions = true
-    
-    conditions = 
-      if start_date = opts[:start_date] do
-        dynamic([es], ^conditions and es.sent_at >= ^start_date)
-      else
-        # Default to last 90 days to prevent full table scans
-        default_start = DateTime.add(DateTime.utc_now(), -90, :day)
-        dynamic([es], ^conditions and es.sent_at >= ^default_start)
-      end
-    
-    conditions = 
-      if end_date = opts[:end_date] do
-        dynamic([es], ^conditions and es.sent_at <= ^end_date)
-      else
-        conditions
-      end
-    
-    conditions = 
-      if email_type = opts[:email_type] do
-        dynamic([es], ^conditions and es.email_type == ^email_type)
-      else
-        conditions
-      end
-    
-    conditions = 
-      if recipient_id = opts[:recipient_id] do
-        dynamic([es], ^conditions and es.recipient_id == ^recipient_id)
-      else
-        conditions
-      end
-    
-    conditions = 
-      if organization_id = opts[:organization_id] do
-        dynamic([es], ^conditions and fragment("?->>'organization_id' = ?", es.metadata, ^to_string(organization_id)))
-      else
-        conditions
-      end
-    
-    conditions
+  defp get_event_count(events_data, email_type, event_type) do
+    events_data
+    |> Enum.find({nil, nil, 0}, fn {et, evt, _count} -> 
+      et == email_type && evt == event_type 
+    end)
+    |> elem(2)
   end
 
-  defp build_recent_activity_filters(opts) do
-    conditions = true
-    
-    conditions = 
-      if start_date = opts[:start_date] do
-        dynamic([event, email_send], ^conditions and email_send.sent_at >= ^start_date)
-      else
-        # Default to last 90 days to prevent full table scans
-        default_start = DateTime.add(DateTime.utc_now(), -90, :day)
-        dynamic([event, email_send], ^conditions and email_send.sent_at >= ^default_start)
-      end
-    
-    conditions = 
-      if end_date = opts[:end_date] do
-        dynamic([event, email_send], ^conditions and email_send.sent_at <= ^end_date)
-      else
-        conditions
-      end
-    
-    conditions = 
-      if email_type = opts[:email_type] do
-        dynamic([event, email_send], ^conditions and email_send.email_type == ^email_type)
-      else
-        conditions
-      end
-    
-    conditions = 
-      if recipient_id = opts[:recipient_id] do
-        dynamic([event, email_send], ^conditions and email_send.recipient_id == ^recipient_id)
-      else
-        conditions
-      end
-    
-    conditions = 
-      if organization_id = opts[:organization_id] do
-        dynamic([event, email_send], ^conditions and fragment("?->>'organization_id' = ?", email_send.metadata, ^to_string(organization_id)))
-      else
-        conditions
-      end
-    
-    conditions
+  defp get_date_event_count(events_data, date, event_type) do
+    events_data
+    |> Enum.find({nil, nil, 0}, fn {d, evt, _count} -> 
+      d == date && evt == event_type 
+    end)
+    |> elem(2)
   end
-
 
   defp calculate_rate(numerator, denominator) when denominator > 0 do
     Float.round(numerator / denominator * 100, 2)
