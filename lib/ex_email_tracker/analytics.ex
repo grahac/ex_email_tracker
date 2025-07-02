@@ -16,7 +16,7 @@ defmodule ExEmailTracker.Analytics do
     events_query = 
       from e in EmailEvent,
       join: es in EmailSend, on: e.email_send_id == es.id,
-      where: ^filter_conditions(opts)
+      where: ^event_filter_conditions(opts)
     
     opened_count = 
       events_query
