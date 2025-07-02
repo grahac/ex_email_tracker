@@ -83,7 +83,7 @@ defmodule ExEmailTracker.Analytics do
     
     from(e in EmailEvent,
       join: es in EmailSend, on: e.email_send_id == es.id,
-      where: ^filter_conditions(opts),
+      where: ^event_filter_conditions(opts),
       order_by: [desc: e.occurred_at],
       limit: ^limit,
       select: %{
@@ -190,6 +190,47 @@ defmodule ExEmailTracker.Analytics do
     conditions = 
       if organization_id = opts[:organization_id] do
         dynamic([es], ^conditions and fragment("?->>'organization_id' = ?", es.metadata, ^to_string(organization_id)))
+      else
+        conditions
+      end
+    
+    conditions
+  end
+
+  defp event_filter_conditions(opts) do
+    conditions = true
+    
+    conditions = 
+      if start_date = opts[:start_date] do
+        dynamic([e, es], ^conditions and es.sent_at >= ^start_date)
+      else
+        conditions
+      end
+    
+    conditions = 
+      if end_date = opts[:end_date] do
+        dynamic([e, es], ^conditions and es.sent_at <= ^end_date)
+      else
+        conditions
+      end
+    
+    conditions = 
+      if email_type = opts[:email_type] do
+        dynamic([e, es], ^conditions and es.email_type == ^email_type)
+      else
+        conditions
+      end
+    
+    conditions = 
+      if recipient_id = opts[:recipient_id] do
+        dynamic([e, es], ^conditions and es.recipient_id == ^recipient_id)
+      else
+        conditions
+      end
+    
+    conditions = 
+      if organization_id = opts[:organization_id] do
+        dynamic([e, es], ^conditions and fragment("?->>'organization_id' = ?", es.metadata, ^to_string(organization_id)))
       else
         conditions
       end
