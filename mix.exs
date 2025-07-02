@@ -24,13 +24,13 @@ defmodule ExEmailTracker.MixProject do
   defp deps do
     [
       {:phoenix, "~> 1.7"},
-      {:phoenix_live_view, "~> 0.20"},
-      {:ecto_sql, "~> 3.10"},
-      {:swoosh, "~> 1.14"},
-      {:plug, "~> 1.14"},
+      {:phoenix_live_view, "~> 1.0"},
+      {:ecto_sql, "~> 3.12"},
+      {:swoosh, "~> 1.16"},
+      {:plug, "~> 1.16"},
       {:jason, "~> 1.4"},
-      {:nimble_csv, "~> 1.2"},
-      {:ex_doc, "~> 0.31", only: :dev, runtime: false},
+      {:nimble_csv, "~> 1.3"},
+      {:ex_doc, "~> 0.34", only: :dev, runtime: false},
       {:postgrex, ">= 0.0.0", only: :test}
     ]
   end
