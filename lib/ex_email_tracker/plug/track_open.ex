@@ -9,7 +9,7 @@ defmodule ExEmailTracker.Plug.TrackOpen do
 
   def init(opts), do: opts
 
-  def call(%Plug.Conn{path_info: ["track", "open", email_send_id]} = conn, _opts) do
+  def call(%Plug.Conn{params: %{"email_send_id" => email_send_id}} = conn, _opts) do
     # Record the open event
     EventRecorder.record_event(email_send_id, "opened", %{
       ip_address: get_client_ip(conn),

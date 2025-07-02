@@ -10,7 +10,7 @@ defmodule ExEmailTracker.Plug.TrackUnsubscribe do
 
   def init(opts), do: opts
 
-  def call(%Plug.Conn{path_info: ["track", "unsubscribe", email_send_id]} = conn, _opts) do
+  def call(%Plug.Conn{params: %{"email_send_id" => email_send_id}} = conn, _opts) do
     case repo().get(EmailSend, email_send_id) do
       nil ->
         conn

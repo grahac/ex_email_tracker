@@ -9,7 +9,7 @@ defmodule ExEmailTracker.Plug.TrackClick do
 
   def init(opts), do: opts
 
-  def call(%Plug.Conn{path_info: ["track", "click", email_send_id, link_id]} = conn, _opts) do
+  def call(%Plug.Conn{params: %{"email_send_id" => email_send_id, "link_id" => link_id}} = conn, _opts) do
     # Get the original URL
     original_url = case conn.params["u"] do
       nil -> "/"
