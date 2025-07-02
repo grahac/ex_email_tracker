@@ -69,10 +69,12 @@ defmodule ExEmailTracker.Analytics do
     # Cap limit to prevent performance issues
     limit = min(limit, 1000)
     
-    # Optimized query using event-first approach for better performance
+    # Build the filters manually to ensure correct binding
+    filter_query = build_recent_activity_filters(opts)
+    
     from(e in EmailEvent,
       join: es in EmailSend, on: e.email_send_id == es.id,
-      where: ^event_filter_conditions(opts),
+      where: ^filter_query,
       order_by: [desc: e.occurred_at],
       limit: ^limit,
       select: %{
@@ -189,48 +191,49 @@ defmodule ExEmailTracker.Analytics do
     conditions
   end
 
-  defp event_filter_conditions(opts) do
+  defp build_recent_activity_filters(opts) do
     conditions = true
     
     conditions = 
       if start_date = opts[:start_date] do
-        dynamic([e, es], ^conditions and es.sent_at >= ^start_date)
+        dynamic([event, email_send], ^conditions and email_send.sent_at >= ^start_date)
       else
         # Default to last 90 days to prevent full table scans
         default_start = DateTime.add(DateTime.utc_now(), -90, :day)
-        dynamic([e, es], ^conditions and es.sent_at >= ^default_start)
+        dynamic([event, email_send], ^conditions and email_send.sent_at >= ^default_start)
       end
     
     conditions = 
       if end_date = opts[:end_date] do
-        dynamic([e, es], ^conditions and es.sent_at <= ^end_date)
+        dynamic([event, email_send], ^conditions and email_send.sent_at <= ^end_date)
       else
         conditions
       end
     
     conditions = 
       if email_type = opts[:email_type] do
-        dynamic([e, es], ^conditions and es.email_type == ^email_type)
+        dynamic([event, email_send], ^conditions and email_send.email_type == ^email_type)
       else
         conditions
       end
     
     conditions = 
       if recipient_id = opts[:recipient_id] do
-        dynamic([e, es], ^conditions and es.recipient_id == ^recipient_id)
+        dynamic([event, email_send], ^conditions and email_send.recipient_id == ^recipient_id)
       else
         conditions
       end
     
     conditions = 
       if organization_id = opts[:organization_id] do
-        dynamic([e, es], ^conditions and fragment("?->>'organization_id' = ?", es.metadata, ^to_string(organization_id)))
+        dynamic([event, email_send], ^conditions and fragment("?->>'organization_id' = ?", email_send.metadata, ^to_string(organization_id)))
       else
         conditions
       end
     
     conditions
   end
+
 
   defp calculate_rate(numerator, denominator) when denominator > 0 do
     Float.round(numerator / denominator * 100, 2)
