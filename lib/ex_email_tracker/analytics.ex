@@ -11,8 +11,9 @@ defmodule ExEmailTracker.Analytics do
   def get_summary_stats(opts \\ []) do
     # Single optimized query using conditional aggregation
     stats = 
-      from es in base_query(opts),
+      from es in EmailSend,
       left_join: e in EmailEvent, on: e.email_send_id == es.id,
+      where: ^filter_conditions(opts),
       select: %{
         sent: count(es.id),
         opened: count(fragment("DISTINCT CASE WHEN ? = 'opened' THEN ? END", e.event_type, e.email_send_id)),
@@ -39,8 +40,9 @@ defmodule ExEmailTracker.Analytics do
   def get_performance_by_type(opts \\ []) do
     # Optimized query using conditional aggregation
     query = 
-      from es in base_query(opts),
+      from es in EmailSend,
       left_join: e in EmailEvent, on: e.email_send_id == es.id,
+      where: ^filter_conditions(opts),
       group_by: es.email_type,
       select: %{
         email_type: es.email_type,
