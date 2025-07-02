@@ -8,23 +8,32 @@ defmodule ExEmailTracker.Router do
   
   ## Options
   
-    * `:auth` - Authentication function as {module, function} tuple
-    * `:assigns` - Default assigns for the dashboard
+    * `:skip_browser_pipeline` - Don't add automatic browser pipeline (default: true)
+    * `:auth` - Authentication function as {module, function} tuple (future use)
+    * `:assigns` - Default assigns for the dashboard (future use)
   
   ## Examples
   
-      # In your router.ex
+      # Within authenticated admin scope (recommended)
       scope "/admin" do
         pipe_through [:browser, :require_authenticated_user]
         
         import ExEmailTracker.Router
         ex_email_tracker_dashboard "/emails"
       end
+      
+      # Standalone with browser pipeline
+      import ExEmailTracker.Router
+      ex_email_tracker_dashboard "/emails", skip_browser_pipeline: false
   """
-  defmacro ex_email_tracker_dashboard(path, _opts \\ []) do
+  defmacro ex_email_tracker_dashboard(path, opts \\ []) do
+    skip_browser_pipeline = Keyword.get(opts, :skip_browser_pipeline, true)
+    
     quote do
       scope unquote(path), ExEmailTracker.Dashboard do
-        pipe_through :browser
+        unless unquote(skip_browser_pipeline) do
+          pipe_through :browser
+        end
         
         live "/", IndexLive, :index
         live "/emails/:id", EmailDetailLive, :show
