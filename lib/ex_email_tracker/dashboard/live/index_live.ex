@@ -51,9 +51,19 @@ defmodule ExEmailTracker.Dashboard.IndexLive do
     ~H"""
     <div class="p-6 bg-gray-50 min-h-screen">
       <div class="max-w-7xl mx-auto">
-        <div class="mb-8">
-          <h1 class="text-3xl font-bold text-gray-900">Email Analytics</h1>
-          <p class="text-gray-600 mt-2">Track email performance and engagement metrics</p>
+        <div class="mb-8 flex justify-between items-start">
+          <div>
+            <h1 class="text-3xl font-bold text-gray-900">Email Analytics</h1>
+            <p class="text-gray-600 mt-2">Track email performance and engagement metrics</p>
+          </div>
+          <div class="flex space-x-3">
+            <a href="analytics" class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+              <svg class="-ml-1 mr-2 h-5 w-5 text-gray-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clip-rule="evenodd" />
+              </svg>
+              Analytics Table
+            </a>
+          </div>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">

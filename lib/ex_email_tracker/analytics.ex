@@ -155,6 +155,94 @@ defmodule ExEmailTracker.Analytics do
   end
 
   @doc """
+  Gets email performance grid data by individual email sends.
+  """
+  def get_email_performance_grid(opts \\ []) do
+    {start_date, end_date} = get_date_range(opts)
+    limit = Keyword.get(opts, :limit, 1000)
+    search = Keyword.get(opts, :search, "")
+    
+    query = from es in EmailSend,
+      left_join: ev_opened in EmailEvent, on: ev_opened.email_send_id == es.id and ev_opened.event_type == "opened",
+      left_join: ev_clicked in EmailEvent, on: ev_clicked.email_send_id == es.id and ev_clicked.event_type == "clicked",
+      where: es.sent_at >= ^start_date and es.sent_at <= ^end_date,
+      order_by: [desc: es.sent_at],
+      limit: ^limit,
+      select: %{
+        id: es.id,
+        recipient_email: es.recipient_email,
+        email_type: es.email_type,
+        subject: es.subject,
+        sent_at: es.sent_at,
+        opened: not is_nil(ev_opened.id),
+        clicked: not is_nil(ev_clicked.id)
+      }
+    
+    # Add search filter if provided
+    query = if search != "" do
+      search_term = "%#{search}%"
+      from q in query, where: ilike(q.recipient_email, ^search_term)
+    else
+      query
+    end
+    
+    repo().all(query)
+  end
+
+  @doc """
+  Gets aggregated email performance by email type and date.
+  """
+  def get_email_performance_summary(opts \\ []) do
+    {start_date, end_date} = get_date_range(opts)
+    limit = Keyword.get(opts, :limit, 500)
+    
+    # First get sent counts by email type and date
+    sent_query = from es in EmailSend,
+      where: es.sent_at >= ^start_date and es.sent_at <= ^end_date,
+      group_by: [es.email_type, fragment("date_trunc('day', ?)", es.sent_at)],
+      select: %{
+        email_type: es.email_type,
+        date: fragment("date_trunc('day', ?)", es.sent_at),
+        sent_count: count(es.id)
+      }
+    
+    sent_data = repo().all(sent_query)
+    
+    # Then get event counts by email type and date
+    events_query = from ev in EmailEvent,
+      join: es in EmailSend, on: ev.email_send_id == es.id,
+      where: es.sent_at >= ^start_date and es.sent_at <= ^end_date and ev.event_type in ["opened", "clicked"],
+      group_by: [es.email_type, fragment("date_trunc('day', ?)", es.sent_at), ev.event_type],
+      select: %{
+        email_type: es.email_type,
+        date: fragment("date_trunc('day', ?)", es.sent_at),
+        event_type: ev.event_type,
+        count: count(fragment("DISTINCT ?", ev.email_send_id))
+      }
+    
+    events_data = repo().all(events_query)
+    
+    # Combine the data
+    sent_data
+    |> Enum.map(fn %{email_type: email_type, date: date, sent_count: sent_count} ->
+      opened_count = get_event_count_for_summary(events_data, email_type, date, "opened")
+      clicked_count = get_event_count_for_summary(events_data, email_type, date, "clicked")
+      
+      %{
+        email_type: email_type,
+        date: date,
+        sent_count: sent_count,
+        opened_count: opened_count,
+        clicked_count: clicked_count,
+        open_rate: calculate_rate(opened_count, sent_count),
+        click_rate: calculate_rate(clicked_count, sent_count)
+      }
+    end)
+    |> Enum.sort_by(&{&1.date, &1.email_type}, :desc)
+    |> Enum.take(limit)
+  end
+
+  @doc """
   Gets individual email details.
   """
   def get_email_details(email_send_id) do
@@ -199,6 +287,14 @@ defmodule ExEmailTracker.Analytics do
       d == date && evt == event_type 
     end)
     |> elem(2)
+  end
+
+  defp get_event_count_for_summary(events_data, email_type, date, event_type) do
+    events_data
+    |> Enum.find(%{count: 0}, fn %{email_type: et, date: d, event_type: evt} -> 
+      et == email_type && d == date && evt == event_type 
+    end)
+    |> Map.get(:count, 0)
   end
 
   defp calculate_rate(numerator, denominator) when denominator > 0 do

@@ -37,6 +37,7 @@ defmodule ExEmailTracker.Router do
         
         live "/", IndexLive, :index
         live "/emails/:id", EmailDetailLive, :show
+        live "/analytics", AnalyticsTableLive, :index
       end
       
       # Add tracking endpoints in the same scope
