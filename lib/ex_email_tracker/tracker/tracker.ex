@@ -29,14 +29,10 @@ defmodule ExEmailTracker.Tracker do
         email_send =
           case create_email_send(email, email_send_id, opts) do
             {:ok, email_send} ->
-              Logger.info("✓ Created email_send record: #{email_send_id} #{email_send.id}")
               email_send
 
             {:error, changeset} ->
-              Logger.error(
-                "✗ Failed to create email_send record for #{email_send_id}: #{inspect(changeset.errors)}"
-              )
-
+              Logger.error("Failed to create email_send record: #{inspect(changeset.errors)}")
               raise "Failed to create email_send record: #{inspect(changeset.errors)}"
           end
 
@@ -81,7 +77,6 @@ defmodule ExEmailTracker.Tracker do
           email_addr
 
         _ ->
-          Logger.error("Unexpected email.to format: #{inspect(email.to)}")
           nil
       end
 
@@ -95,8 +90,6 @@ defmodule ExEmailTracker.Tracker do
       metadata: Keyword.get(opts, :metadata, %{}),
       sent_at: DateTime.utc_now()
     }
-
-    IO.puts("attrs: #{inspect(attrs)}")
 
     %EmailSend{}
     |> EmailSend.changeset(attrs)
