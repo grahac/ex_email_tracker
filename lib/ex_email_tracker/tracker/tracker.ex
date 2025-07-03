@@ -96,6 +96,7 @@ defmodule ExEmailTracker.Tracker do
       
       email
       |> Map.update(:headers, [{"List-Unsubscribe", "<#{unsubscribe_url}>"}], fn headers ->
+        headers = normalize_headers(headers)
         [{"List-Unsubscribe", "<#{unsubscribe_url}>"} | headers]
       end)
     else
@@ -105,9 +106,14 @@ defmodule ExEmailTracker.Tracker do
 
   defp add_tracking_headers(email, email_send_id) do
     Map.update(email, :headers, [], fn headers ->
+      headers = normalize_headers(headers)
       [{"X-Email-Track-ID", email_send_id} | headers]
     end)
   end
+
+  defp normalize_headers(headers) when is_list(headers), do: headers
+  defp normalize_headers(%{}), do: []
+  defp normalize_headers(_), do: []
 
   defp build_unsubscribe_url(email_send) do
     base_url = ExEmailTracker.base_url()
