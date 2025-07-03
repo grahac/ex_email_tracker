@@ -4,7 +4,7 @@ defmodule ExEmailTracker.Tracker do
   """
   alias ExEmailTracker.Schemas.EmailSend
   alias ExEmailTracker.Tracker.{LinkRewriter, PixelInjector}
-  
+
   require Logger
 
   @doc """
@@ -14,27 +14,32 @@ defmodule ExEmailTracker.Tracker do
     cond do
       Keyword.get(opts, :skip_tracking, false) ->
         email
-        
+
       should_suppress_email?(email, opts) ->
         # Return nil to indicate email should not be sent
         nil
-        
+
       true ->
         opts = validate_opts!(opts)
-        
+
         # Generate tracking ID
         email_send_id = Ecto.UUID.generate()
-        
+
         # Store email send record
-        email_send = case create_email_send(email, email_send_id, opts) do
-          {:ok, email_send} ->
-            Logger.info("✓ Created email_send record: #{email_send_id}")
-            email_send
-          {:error, changeset} ->
-            Logger.error("✗ Failed to create email_send record for #{email_send_id}: #{inspect(changeset.errors)}")
-            raise "Failed to create email_send record: #{inspect(changeset.errors)}"
-        end
-        
+        email_send =
+          case create_email_send(email, email_send_id, opts) do
+            {:ok, email_send} ->
+              Logger.info("✓ Created email_send record: #{email_send_id} #{email_send.id}")
+              email_send
+
+            {:error, changeset} ->
+              Logger.error(
+                "✗ Failed to create email_send record for #{email_send_id}: #{inspect(changeset.errors)}"
+              )
+
+              raise "Failed to create email_send record: #{inspect(changeset.errors)}"
+          end
+
         email
         |> normalize_email_headers()
         |> inject_tracking_pixel(email_send_id)
@@ -43,12 +48,12 @@ defmodule ExEmailTracker.Tracker do
         |> add_tracking_headers(email_send_id)
     end
   end
-  
+
   defp should_suppress_email?(email, opts) do
     if Application.get_env(:ex_email_tracker, :check_unsubscribes, false) do
       %{to: [{_name, recipient_email}]} = email
       email_type = Keyword.fetch!(opts, :email_type)
-      
+
       ExEmailTracker.Unsubscribe.unsubscribed?(recipient_email, email_type)
     else
       false
@@ -59,20 +64,27 @@ defmodule ExEmailTracker.Tracker do
     unless Keyword.has_key?(opts, :email_type) do
       raise ArgumentError, "email_type is required"
     end
-    
+
     opts
   end
 
   defp create_email_send(email, email_send_id, opts) do
-    recipient_email = case email.to do
-      [{_name, email_addr}] -> email_addr
-      [{_name, email_addr} | _] -> email_addr
-      [email_addr] when is_binary(email_addr) -> email_addr
-      _ -> 
-        Logger.error("Unexpected email.to format: #{inspect(email.to)}")
-        nil
-    end
-    
+    recipient_email =
+      case email.to do
+        [{_name, email_addr}] ->
+          email_addr
+
+        [{_name, email_addr} | _] ->
+          email_addr
+
+        [email_addr] when is_binary(email_addr) ->
+          email_addr
+
+        _ ->
+          Logger.error("Unexpected email.to format: #{inspect(email.to)}")
+          nil
+      end
+
     attrs = %{
       id: email_send_id,
       recipient_email: recipient_email,
@@ -83,7 +95,9 @@ defmodule ExEmailTracker.Tracker do
       metadata: Keyword.get(opts, :metadata, %{}),
       sent_at: DateTime.utc_now()
     }
-    
+
+    IO.puts("attrs: #{inspect(attrs)}")
+
     %EmailSend{}
     |> EmailSend.changeset(attrs)
     |> repo().insert()
@@ -108,7 +122,7 @@ defmodule ExEmailTracker.Tracker do
   defp add_unsubscribe_link(email, email_send) do
     if Application.get_env(:ex_email_tracker, :add_unsubscribe, true) do
       unsubscribe_url = build_unsubscribe_url(email_send)
-      
+
       email
       |> Map.update(:headers, %{"List-Unsubscribe" => "<#{unsubscribe_url}>"}, fn headers ->
         headers = normalize_headers_to_map(headers)
@@ -131,9 +145,11 @@ defmodule ExEmailTracker.Tracker do
   end
 
   defp normalize_headers_to_map(headers) when is_map(headers), do: headers
+
   defp normalize_headers_to_map(headers) when is_list(headers) do
     Enum.into(headers, %{})
   end
+
   defp normalize_headers_to_map(_), do: %{}
 
   defp build_unsubscribe_url(email_send) do

@@ -5,7 +5,7 @@ defmodule ExEmailTracker.Schemas.EmailSend do
   use Ecto.Schema
   import Ecto.Changeset
 
-  @primary_key {:id, :binary_id, autogenerate: true}
+  @primary_key {:id, :binary_id, autogenerate: false}
   @foreign_key_type :binary_id
 
   schema "ex_email_sends" do
@@ -23,7 +23,7 @@ defmodule ExEmailTracker.Schemas.EmailSend do
     timestamps(type: :utc_datetime_usec)
   end
 
-  @required_fields ~w(recipient_email email_type sent_at)a
+  @required_fields ~w(id recipient_email email_type sent_at)a
   @optional_fields ~w(recipient_id subject variant metadata)a
 
   @doc false
