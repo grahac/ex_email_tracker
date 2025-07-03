@@ -7,7 +7,7 @@ defmodule ExEmailTracker do
 
   - Open tracking via invisible pixel
   - Click tracking with URL preservation
-  - Bounce and unsubscribe handling
+  - Bounce handling  
   - Real-time analytics dashboard
   - GDPR compliant with privacy controls
 

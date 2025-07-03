@@ -198,7 +198,6 @@ defmodule ExEmailTracker.Dashboard.IndexLive do
   defp event_color("opened"), do: "bg-green-100 text-green-800"
   defp event_color("clicked"), do: "bg-blue-100 text-blue-800"
   defp event_color("bounced"), do: "bg-red-100 text-red-800"
-  defp event_color("unsubscribed"), do: "bg-yellow-100 text-yellow-800"
   defp event_color(_), do: "bg-gray-100 text-gray-800"
 
   defp relative_time(datetime) do

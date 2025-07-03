@@ -58,7 +58,6 @@ defmodule ExEmailTracker.Router do
     quote do
       get "/track/open/:email_send_id", ExEmailTracker.Plug.TrackOpen, []
       get "/track/click/:email_send_id/:link_id", ExEmailTracker.Plug.TrackClick, []
-      get "/track/unsubscribe/:email_send_id", ExEmailTracker.Plug.TrackUnsubscribe, []
     end
   end
 end

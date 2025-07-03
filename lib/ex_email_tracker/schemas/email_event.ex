@@ -5,7 +5,7 @@ defmodule ExEmailTracker.Schemas.EmailEvent do
   use Ecto.Schema
   import Ecto.Changeset
 
-  @event_types ~w(opened clicked bounced complained unsubscribed)
+  @event_types ~w(opened clicked bounced complained)
 
   schema "ex_email_events" do
     field :email_send_id, :binary_id

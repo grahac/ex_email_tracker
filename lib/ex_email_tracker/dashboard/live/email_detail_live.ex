@@ -98,13 +98,11 @@ defmodule ExEmailTracker.Dashboard.EmailDetailLive do
   defp event_bg_color("opened"), do: "bg-green-500"
   defp event_bg_color("clicked"), do: "bg-blue-500"
   defp event_bg_color("bounced"), do: "bg-red-500"
-  defp event_bg_color("unsubscribed"), do: "bg-yellow-500"
   defp event_bg_color(_), do: "bg-gray-500"
 
   defp event_icon("opened"), do: "👁"
   defp event_icon("clicked"), do: "🔗"
   defp event_icon("bounced"), do: "⚠"
-  defp event_icon("unsubscribed"), do: "🚫"
   defp event_icon(_), do: "📧"
 
   defp format_datetime(datetime) do
