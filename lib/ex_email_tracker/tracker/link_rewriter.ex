@@ -4,7 +4,7 @@ defmodule ExEmailTracker.Tracker.LinkRewriter do
   """
   alias ExEmailTracker.Schemas.EmailLink
 
-  @link_regex ~r/<a\s+(?:[^>]*?\s+)?href=(["'])(.*?)\1(.*?)>(.*?)<\/a>/i
+  @link_regex ~r/<a\s+(?:[^>]*?\s+)?href=(["'])(.*?)\1(.*?)>(.*?)<\/a>/ims
 
   @doc """
   Rewrites all links in the email to track clicks.
