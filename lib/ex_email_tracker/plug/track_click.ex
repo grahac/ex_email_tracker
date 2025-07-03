@@ -22,7 +22,7 @@ defmodule ExEmailTracker.Plug.TrackClick do
 
     # Record the click event
     EventRecorder.record_event(email_send_id, "clicked", %{
-      ip_address: get_client_ip(conn),
+      ip_address: get_client_ip(conn) |> parse_ip_address(),
       user_agent: get_req_header(conn, "user-agent") |> List.first(),
       click_url: original_url,
       occurred_at: DateTime.utc_now(),
@@ -51,4 +51,13 @@ defmodule ExEmailTracker.Plug.TrackClick do
         |> to_string()
     end
   end
+
+  defp parse_ip_address(ip_string) when is_binary(ip_string) do
+    case :inet.parse_address(String.to_charlist(ip_string)) do
+      {:ok, ip_tuple} -> ip_tuple
+      {:error, _} -> nil
+    end
+  end
+  
+  defp parse_ip_address(_), do: nil
 end

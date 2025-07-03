@@ -94,19 +94,20 @@ end
 In your `router.ex`:
 
 ```elixir
-# For the full dashboard
+# REQUIRED: Add tracking endpoints at the root level
+import ExEmailTracker.Router
+ex_email_tracker_endpoints()
+
+# OPTIONAL: Add admin dashboard (in a protected scope)
 scope "/admin" do
   pipe_through [:browser, :require_authenticated_user]
   
   import ExEmailTracker.Router
   ex_email_tracker_dashboard "/emails"
 end
-
-# Or just tracking endpoints
-scope "/track", ExEmailTracker do
-  ex_email_tracker_endpoints()
-end
 ```
+
+**⚠️ Important:** The tracking endpoints (`ex_email_tracker_endpoints()`) must be added at the root level of your router, not inside any scope. This ensures they're accessible at `/track/open/:id`, `/track/click/:id/:link_id`, and `/track/unsubscribe/:id` which is where the tracking URLs point to.
 
 ## Dashboard
 
