@@ -26,7 +26,14 @@ defmodule ExEmailTracker.Tracker do
         email_send_id = Ecto.UUID.generate()
         
         # Store email send record
-        {:ok, email_send} = create_email_send(email, email_send_id, opts)
+        email_send = case create_email_send(email, email_send_id, opts) do
+          {:ok, email_send} ->
+            Logger.info("✓ Created email_send record: #{email_send_id}")
+            email_send
+          {:error, changeset} ->
+            Logger.error("✗ Failed to create email_send record for #{email_send_id}: #{inspect(changeset.errors)}")
+            raise "Failed to create email_send record: #{inspect(changeset.errors)}"
+        end
         
         email
         |> normalize_email_headers()
@@ -57,7 +64,14 @@ defmodule ExEmailTracker.Tracker do
   end
 
   defp create_email_send(email, email_send_id, opts) do
-    %{to: [{_name, recipient_email}]} = email
+    recipient_email = case email.to do
+      [{_name, email_addr}] -> email_addr
+      [{_name, email_addr} | _] -> email_addr
+      [email_addr] when is_binary(email_addr) -> email_addr
+      _ -> 
+        Logger.error("Unexpected email.to format: #{inspect(email.to)}")
+        nil
+    end
     
     attrs = %{
       id: email_send_id,
