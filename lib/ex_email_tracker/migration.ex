@@ -53,7 +53,7 @@ defmodule ExEmailTracker.Migration do
       add :email_send_id, references(:ex_email_sends, type: :uuid, on_delete: :delete_all), null: false
       add :event_type, :string, size: 20, null: false
       add :occurred_at, :utc_datetime_usec, null: false
-      add :ip_address, :inet
+      add :ip_address, :string
       add :user_agent, :text
       add :click_url, :text
       add :metadata, :jsonb, default: "{}"
