@@ -31,7 +31,9 @@ defmodule ExEmailTracker.MixProject do
       {:jason, "~> 1.4"},
       {:nimble_csv, "~> 1.3"},
       {:ex_doc, "~> 0.34", only: :dev, runtime: false},
-      {:postgrex, ">= 0.0.0", only: :test}
+      {:postgrex, ">= 0.0.0", only: :test},
+      {:hackney, "~> 1.9", only: :test},
+      {:meck, "~> 0.9", only: :test}
     ]
   end
 
