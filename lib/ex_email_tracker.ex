@@ -41,8 +41,10 @@ defmodule ExEmailTracker do
 
   ## Examples
 
-      iex> email |> ExEmailTracker.track(email_type: :welcome_email)
-      %Swoosh.Email{}
+      iex> email = %Swoosh.Email{to: [{"Test", "test@example.com"}], subject: "Test", html_body: "<p>Hello</p>"}
+      iex> tracked = ExEmailTracker.track(email, email_type: :welcome_email)
+      iex> is_struct(tracked, Swoosh.Email)
+      true
 
   """
   @spec track(Swoosh.Email.t(), keyword()) :: Swoosh.Email.t()
