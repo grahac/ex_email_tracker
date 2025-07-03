@@ -29,6 +29,7 @@ defmodule ExEmailTracker.Tracker do
         {:ok, email_send} = create_email_send(email, email_send_id, opts)
         
         email
+        |> normalize_email_headers()
         |> inject_tracking_pixel(email_send_id)
         |> rewrite_links(email_send)
         |> add_unsubscribe_link(email_send)
@@ -95,9 +96,9 @@ defmodule ExEmailTracker.Tracker do
       unsubscribe_url = build_unsubscribe_url(email_send)
       
       email
-      |> Map.update(:headers, [{"List-Unsubscribe", "<#{unsubscribe_url}>"}], fn headers ->
-        headers = normalize_headers(headers)
-        [{"List-Unsubscribe", "<#{unsubscribe_url}>"} | headers]
+      |> Map.update(:headers, %{"List-Unsubscribe" => "<#{unsubscribe_url}>"}, fn headers ->
+        headers = normalize_headers_to_map(headers)
+        Map.put(headers, "List-Unsubscribe", "<#{unsubscribe_url}>")
       end)
     else
       email
@@ -105,15 +106,21 @@ defmodule ExEmailTracker.Tracker do
   end
 
   defp add_tracking_headers(email, email_send_id) do
-    Map.update(email, :headers, [], fn headers ->
-      headers = normalize_headers(headers)
-      [{"X-Email-Track-ID", email_send_id} | headers]
+    Map.update(email, :headers, %{}, fn headers ->
+      headers = normalize_headers_to_map(headers)
+      Map.put(headers, "X-Email-Track-ID", email_send_id)
     end)
   end
 
-  defp normalize_headers(headers) when is_list(headers), do: headers
-  defp normalize_headers(%{}), do: []
-  defp normalize_headers(_), do: []
+  defp normalize_email_headers(email) do
+    %{email | headers: normalize_headers_to_map(email.headers)}
+  end
+
+  defp normalize_headers_to_map(headers) when is_map(headers), do: headers
+  defp normalize_headers_to_map(headers) when is_list(headers) do
+    Enum.into(headers, %{})
+  end
+  defp normalize_headers_to_map(_), do: %{}
 
   defp build_unsubscribe_url(email_send) do
     base_url = ExEmailTracker.base_url()
