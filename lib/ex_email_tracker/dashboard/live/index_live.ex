@@ -13,7 +13,7 @@ defmodule ExEmailTracker.Dashboard.IndexLive do
       end
     end
 
-    socket = 
+    socket =
       socket
       |> assign_filters()
       |> load_dashboard_data()
@@ -22,7 +22,7 @@ defmodule ExEmailTracker.Dashboard.IndexLive do
   end
 
   def handle_params(params, _url, socket) do
-    socket = 
+    socket =
       socket
       |> apply_filters(params)
       |> load_dashboard_data()
@@ -32,8 +32,8 @@ defmodule ExEmailTracker.Dashboard.IndexLive do
 
   def handle_event("filter", %{"filters" => filters}, socket) do
     query_params = build_query_params(filters)
-    path = "/emails?#{URI.encode_query(query_params)}"
-    
+    path = "./?#{URI.encode_query(query_params)}"
+
     {:noreply, push_navigate(socket, to: path)}
   end
 
@@ -57,12 +57,13 @@ defmodule ExEmailTracker.Dashboard.IndexLive do
             <p class="text-gray-600 mt-2">Track email performance and engagement metrics</p>
           </div>
           <div class="flex space-x-3">
-            <a href="analytics" class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+            <%!-- Use relative navigation to work correctly when dashboard is mounted at nested paths like /admin/emails --%>
+            <.link navigate="./analytics/" class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
               <svg class="-ml-1 mr-2 h-5 w-5 text-gray-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
                 <path fill-rule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clip-rule="evenodd" />
               </svg>
               Analytics Table
-            </a>
+            </.link>
           </div>
         </div>
 
@@ -71,19 +72,19 @@ defmodule ExEmailTracker.Dashboard.IndexLive do
             <div class="text-sm font-medium text-gray-500">Total Sent</div>
             <div class="text-2xl font-bold text-gray-900"><%= @stats.sent %></div>
           </div>
-          
+
           <div class="p-6 bg-white rounded-lg shadow">
             <div class="text-sm font-medium text-gray-500">Open Rate</div>
             <div class="text-2xl font-bold text-green-600"><%= @stats.open_rate %>%</div>
             <div class="text-sm text-gray-500"><%= @stats.opened %> opened</div>
           </div>
-          
+
           <div class="p-6 bg-white rounded-lg shadow">
             <div class="text-sm font-medium text-gray-500">Click Rate</div>
             <div class="text-2xl font-bold text-blue-600"><%= @stats.click_rate %>%</div>
             <div class="text-sm text-gray-500"><%= @stats.clicked %> clicked</div>
           </div>
-          
+
           <div class="p-6 bg-white rounded-lg shadow">
             <div class="text-sm font-medium text-gray-500">Bounce Rate</div>
             <div class="text-2xl font-bold text-red-600"><%= @stats.bounce_rate %>%</div>
@@ -143,19 +144,19 @@ defmodule ExEmailTracker.Dashboard.IndexLive do
       date_range: params["date_range"] || socket.assigns.filters.date_range,
       email_type: params["email_type"] || socket.assigns.filters.email_type
     }
-    
+
     assign(socket, :filters, filters)
   end
 
   defp load_dashboard_data(socket) do
     opts = build_analytics_opts(socket.assigns.filters)
-    
+
     stats = Analytics.get_summary_stats(opts)
     performance_by_type = Analytics.get_performance_by_type(opts)
     recent_activity = Analytics.get_recent_activity(opts ++ [limit: 20])
-    
+
     # Get unique email types for filter dropdown
-    email_types = 
+    email_types =
       performance_by_type
       |> Enum.map(& &1.email_type)
       |> Enum.sort()
@@ -169,8 +170,8 @@ defmodule ExEmailTracker.Dashboard.IndexLive do
 
   defp build_analytics_opts(filters) do
     opts = []
-    
-    opts = 
+
+    opts =
       if filters.date_range != "" do
         days = String.to_integer(filters.date_range)
         start_date = DateTime.add(DateTime.utc_now(), -days, :day)
@@ -178,14 +179,14 @@ defmodule ExEmailTracker.Dashboard.IndexLive do
       else
         opts
       end
-    
-    opts = 
+
+    opts =
       if filters.email_type != "" do
         [email_type: filters.email_type] ++ opts
       else
         opts
       end
-    
+
     opts
   end
 
@@ -202,7 +203,7 @@ defmodule ExEmailTracker.Dashboard.IndexLive do
 
   defp relative_time(datetime) do
     diff = DateTime.diff(DateTime.utc_now(), datetime, :second)
-    
+
     cond do
       diff < 60 -> "#{diff}s ago"
       diff < 3600 -> "#{div(diff, 60)}m ago"
