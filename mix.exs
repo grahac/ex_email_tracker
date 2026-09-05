@@ -32,7 +32,7 @@ defmodule ExEmailTracker.MixProject do
       {:nimble_csv, "~> 1.3"},
       {:ex_doc, "~> 0.34", only: :dev, runtime: false},
       {:postgrex, ">= 0.0.0", only: :test},
-      {:meck, "~> 0.9", only: :test}
+      {:meck, "~> 1.2", only: :test}
     ]
   end
 
