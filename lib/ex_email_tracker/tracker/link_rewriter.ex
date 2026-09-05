@@ -21,7 +21,9 @@ defmodule ExEmailTracker.Tracker.LinkRewriter do
             html_body,
             fn full_match, quote, url, attrs, link_text ->
               rewrite_link(full_match, quote, url, attrs, link_text, email_send)
-            end, global: true)
+            end,
+            global: true
+          )
           |> then(&{&1, nil})
 
         Map.put(email, :html_body, rewritten_html)
