@@ -13,7 +13,7 @@ defmodule ExEmailTracker.Plug.TrackOpen do
   def call(%Plug.Conn{params: %{"email_send_id" => email_send_id}} = conn, _opts) do
     # Decode the email_send_id if it's Base64 encoded
     decoded_id = decode_email_send_id(email_send_id)
-    
+
     # Record the open event only if we have a valid UUID
     case decoded_id do
       {:ok, valid_id} ->
@@ -22,7 +22,7 @@ defmodule ExEmailTracker.Plug.TrackOpen do
           user_agent: get_req_header(conn, "user-agent") |> List.first(),
           occurred_at: DateTime.utc_now()
         })
-        
+
       {:error, _reason} ->
         # Log the error but don't crash
         require Logger
@@ -47,7 +47,7 @@ defmodule ExEmailTracker.Plug.TrackOpen do
         |> String.split(",")
         |> List.first()
         |> String.trim()
-        
+
       [] ->
         conn.remote_ip
         |> :inet.ntoa()
@@ -57,24 +57,27 @@ defmodule ExEmailTracker.Plug.TrackOpen do
 
   defp transparent_pixel do
     # 1x1 transparent PNG pixel
-    <<137, 80, 78, 71, 13, 10, 26, 10, 0, 0, 0, 13, 73, 72, 68, 82, 0, 0, 0, 1, 0, 0, 0, 1, 8, 6, 0, 0, 0, 31, 21, 196, 137, 0, 0, 0, 11, 73, 68, 65, 84, 120, 218, 99, 248, 15, 0, 1, 1, 1, 0, 24, 221, 141, 219, 0, 0, 0, 0, 73, 69, 78, 68, 174, 66, 96, 130>>
+    <<137, 80, 78, 71, 13, 10, 26, 10, 0, 0, 0, 13, 73, 72, 68, 82, 0, 0, 0, 1, 0, 0, 0, 1, 8, 6,
+      0, 0, 0, 31, 21, 196, 137, 0, 0, 0, 11, 73, 68, 65, 84, 120, 218, 99, 248, 15, 0, 1, 1, 1,
+      0, 24, 221, 141, 219, 0, 0, 0, 0, 73, 69, 78, 68, 174, 66, 96, 130>>
   end
-  
+
   defp decode_email_send_id(id) do
     # First try to validate as UUID
     case Ecto.UUID.cast(id) do
-      {:ok, uuid} -> 
+      {:ok, uuid} ->
         {:ok, uuid}
-        
+
       :error ->
         # Try to decode from Base64 - some email clients encode URLs
         case Base.url_decode64(id, padding: false) do
-          {:ok, decoded} -> 
+          {:ok, decoded} ->
             case Ecto.UUID.cast(decoded) do
               {:ok, uuid} -> {:ok, uuid}
               :error -> {:error, :invalid_uuid_after_decode}
             end
-          :error -> 
+
+          :error ->
             {:error, :invalid_base64}
         end
     end

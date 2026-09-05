@@ -8,18 +8,19 @@ defmodule ExEmailTracker.Schemas.EmailEvent do
   @event_types ~w(opened clicked bounced complained)
 
   schema "ex_email_events" do
-    field :email_send_id, :binary_id
-    field :event_type, :string
-    field :occurred_at, :utc_datetime_usec
-    field :ip_address, :string
-    field :user_agent, :string
-    field :click_url, :string
-    field :metadata, :map, default: %{}
+    field(:email_send_id, :binary_id)
+    field(:event_type, :string)
+    field(:occurred_at, :utc_datetime_usec)
+    field(:ip_address, :string)
+    field(:user_agent, :string)
+    field(:click_url, :string)
+    field(:metadata, :map, default: %{})
 
-    belongs_to :email_send, ExEmailTracker.Schemas.EmailSend,
+    belongs_to(:email_send, ExEmailTracker.Schemas.EmailSend,
       foreign_key: :email_send_id,
       references: :id,
       define_field: false
+    )
 
     timestamps(type: :utc_datetime_usec, updated_at: false)
   end

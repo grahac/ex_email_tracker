@@ -38,7 +38,6 @@ defmodule ExEmailTracker.Tracker do
     end
   end
 
-
   defp validate_opts!(opts) do
     unless Keyword.has_key?(opts, :email_type) do
       raise ArgumentError, "email_type is required"
@@ -95,7 +94,6 @@ defmodule ExEmailTracker.Tracker do
     end
   end
 
-
   defp add_tracking_headers(email, email_send_id) do
     Map.update(email, :headers, %{}, fn headers ->
       headers = normalize_headers_to_map(headers)
@@ -114,7 +112,6 @@ defmodule ExEmailTracker.Tracker do
   end
 
   defp normalize_headers_to_map(_), do: %{}
-
 
   defp repo do
     ExEmailTracker.repo()

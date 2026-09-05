@@ -6,15 +6,16 @@ defmodule ExEmailTracker.Schemas.EmailLink do
   import Ecto.Changeset
 
   schema "ex_email_links" do
-    field :email_send_id, :binary_id
-    field :original_url, :string
-    field :link_position, :integer
-    field :link_text, :string
+    field(:email_send_id, :binary_id)
+    field(:original_url, :string)
+    field(:link_position, :integer)
+    field(:link_text, :string)
 
-    belongs_to :email_send, ExEmailTracker.Schemas.EmailSend,
+    belongs_to(:email_send, ExEmailTracker.Schemas.EmailSend,
       foreign_key: :email_send_id,
       references: :id,
       define_field: false
+    )
 
     timestamps(type: :utc_datetime_usec, updated_at: false)
   end

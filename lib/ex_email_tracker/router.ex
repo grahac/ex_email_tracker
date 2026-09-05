@@ -2,18 +2,18 @@ defmodule ExEmailTracker.Router do
   @moduledoc """
   Router helpers for adding ExEmailTracker routes to Phoenix applications.
   """
-  
+
   @doc """
   Adds ExEmailTracker dashboard routes.
-  
+
   ## Options
-  
+
     * `:skip_browser_pipeline` - Don't add automatic browser pipeline (default: true)
     * `:auth` - Authentication function as {module, function} tuple (future use)
     * `:assigns` - Default assigns for the dashboard (future use)
-  
+
   ## Examples
-  
+
       # Within authenticated admin scope (recommended)
       scope "/admin" do
         pipe_through [:browser, :require_authenticated_user]
@@ -28,36 +28,36 @@ defmodule ExEmailTracker.Router do
   """
   defmacro ex_email_tracker_dashboard(path, opts \\ []) do
     skip_browser_pipeline = Keyword.get(opts, :skip_browser_pipeline, true)
-    
+
     quote do
       scope unquote(path), ExEmailTracker.Dashboard do
         unless unquote(skip_browser_pipeline) do
-          pipe_through :browser
+          pipe_through(:browser)
         end
-        
-        live "/", IndexLive, :index
-        live "/emails/:id", EmailDetailLive, :show
-        live "/analytics", AnalyticsTableLive, :index
+
+        live("/", IndexLive, :index)
+        live("/emails/:id", EmailDetailLive, :show)
+        live("/analytics", AnalyticsTableLive, :index)
       end
-      
+
       # Add tracking endpoints in the same scope
       ex_email_tracker_endpoints()
     end
   end
-  
+
   @doc """
   Adds only the tracking endpoints without the dashboard.
-  
+
   ## Examples
-  
+
       scope "/track", ExEmailTracker do
         ex_email_tracker_endpoints()
       end
   """
   defmacro ex_email_tracker_endpoints do
     quote do
-      get "/track/open/:email_send_id", ExEmailTracker.Plug.TrackOpen, []
-      get "/track/click/:email_send_id/:link_id", ExEmailTracker.Plug.TrackClick, []
+      get("/track/open/:email_send_id", ExEmailTracker.Plug.TrackOpen, [])
+      get("/track/click/:email_send_id/:link_id", ExEmailTracker.Plug.TrackClick, [])
     end
   end
 end

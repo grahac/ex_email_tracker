@@ -9,16 +9,22 @@ defmodule ExEmailTracker.Plug.TrackClick do
 
   def init(opts), do: opts
 
-  def call(%Plug.Conn{params: %{"email_send_id" => email_send_id, "link_id" => link_id}} = conn, _opts) do
+  def call(
+        %Plug.Conn{params: %{"email_send_id" => email_send_id, "link_id" => link_id}} = conn,
+        _opts
+      ) do
     # Get the original URL
-    original_url = case conn.params["u"] do
-      nil -> "/"
-      encoded_url ->
-        case Base.url_decode64(encoded_url, padding: false) do
-          {:ok, url} -> url
-          :error -> "/"
-        end
-    end
+    original_url =
+      case conn.params["u"] do
+        nil ->
+          "/"
+
+        encoded_url ->
+          case Base.url_decode64(encoded_url, padding: false) do
+            {:ok, url} -> url
+            :error -> "/"
+          end
+      end
 
     # Record the click event
     EventRecorder.record_event(email_send_id, "clicked", %{
@@ -44,12 +50,11 @@ defmodule ExEmailTracker.Plug.TrackClick do
         |> String.split(",")
         |> List.first()
         |> String.trim()
-        
+
       [] ->
         conn.remote_ip
         |> :inet.ntoa()
         |> to_string()
     end
   end
-
 end
