@@ -6,10 +6,10 @@ defmodule ExEmailTracker.Schemas.EmailUnsubscribe do
   import Ecto.Changeset
 
   schema "ex_email_unsubscribes" do
-    field :recipient_email, :string
-    field :email_type, :string
-    field :unsubscribed_at, :utc_datetime_usec
-    field :reason, :string
+    field(:recipient_email, :string)
+    field(:email_type, :string)
+    field(:unsubscribed_at, :utc_datetime_usec)
+    field(:reason, :string)
 
     timestamps(type: :utc_datetime_usec, updated_at: false)
   end

@@ -33,25 +33,27 @@ end
 
 # Run migrations using the migration module - only if tables don't exist
 case ExEmailTracker.TestRepo.query("SELECT 1 FROM ex_email_sends LIMIT 1") do
-  {:ok, _} -> 
+  {:ok, _} ->
     # Tables exist, do nothing
     :ok
+
   {:error, %Postgrex.Error{postgres: %{code: :undefined_table}}} ->
     # Tables don't exist, create them
     IO.puts("Creating test database tables...")
-    
+
     # Create a temporary migration module for testing
     defmodule TestMigration do
       use Ecto.Migration
-      
+
       def change do
         ExEmailTracker.Migration.up()
       end
     end
-    
+
     # Run the migration
     Ecto.Migrator.run(ExEmailTracker.TestRepo, [{0, TestMigration}], :up, all: true)
     IO.puts("Test database tables created successfully!")
+
   {:error, error} ->
     raise "Unexpected database error: #{inspect(error)}"
 end

@@ -15,7 +15,7 @@ defmodule ExEmailTracker.Plug.TrackUnsubscribe do
       nil ->
         conn
         |> send_resp(404, "Email not found")
-        
+
       email_send ->
         handle_unsubscribe(conn, email_send)
     end
@@ -46,22 +46,22 @@ defmodule ExEmailTracker.Plug.TrackUnsubscribe do
 
     # Redirect to configured URL or default page
     redirect_url = build_redirect_url(email_send)
-    
+
     conn
     |> put_resp_header("location", redirect_url)
     |> send_resp(302, "")
   end
-  
+
   defp build_redirect_url(email_send) do
     case Application.get_env(:ex_email_tracker, :unsubscribe_redirect_url) do
-      nil -> 
+      nil ->
         # Default to a simple confirmation page if no URL configured
         "#{ExEmailTracker.base_url()}/unsubscribe/success"
-        
+
       url when is_binary(url) ->
         # Simple string URL
         url
-        
+
       url_fn when is_function(url_fn, 1) ->
         # Function that receives email_send and returns URL
         url_fn.(email_send)
@@ -88,7 +88,7 @@ defmodule ExEmailTracker.Plug.TrackUnsubscribe do
         |> String.split(",")
         |> List.first()
         |> String.trim()
-        
+
       [] ->
         conn.remote_ip
         |> :inet.ntoa()

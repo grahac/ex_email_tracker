@@ -5,8 +5,8 @@ defmodule ExEmailTracker.Dashboard.AnalyticsTableLive do
   @impl true
   def mount(_params, _session, socket) do
     today = Date.utc_today()
-    
-    socket = 
+
+    socket =
       socket
       |> assign(:page_title, "Email Analytics Table")
       |> assign(:view_mode, "summary")
@@ -36,8 +36,8 @@ defmodule ExEmailTracker.Dashboard.AnalyticsTableLive do
     IO.inspect(params, label: "filter_date params")
     filter = params["date_filter"]
     {start_date, end_date} = get_date_range_for_filter(filter)
-    
-    socket = 
+
+    socket =
       socket
       |> assign(:date_filter, filter)
       |> assign(:start_date, start_date)
@@ -48,11 +48,14 @@ defmodule ExEmailTracker.Dashboard.AnalyticsTableLive do
     {:noreply, socket}
   end
 
-  def handle_event("set_custom_dates", %{"start_date" => start_str, "end_date" => end_str}, socket) do
+  def handle_event(
+        "set_custom_dates",
+        %{"start_date" => start_str, "end_date" => end_str},
+        socket
+      ) do
     with {:ok, start_date} <- Date.from_iso8601(start_str),
          {:ok, end_date} <- Date.from_iso8601(end_str) do
-      
-      socket = 
+      socket =
         socket
         |> assign(:date_filter, "custom")
         |> assign(:start_date, start_date)
@@ -69,17 +72,18 @@ defmodule ExEmailTracker.Dashboard.AnalyticsTableLive do
   end
 
   def handle_event("toggle_view", %{"mode" => mode}, socket) do
-    socket = 
+    socket =
       socket
       |> assign(:view_mode, mode)
-      |> assign(:search_term, "")  # Clear search when switching views
+      # Clear search when switching views
+      |> assign(:search_term, "")
       |> load_analytics_data()
 
     {:noreply, socket}
   end
 
   def handle_event("drill_down", %{"email_type" => email_type}, socket) do
-    socket = 
+    socket =
       socket
       |> assign(:selected_email_type, email_type)
       |> assign(:view_mode, "detail")
@@ -89,7 +93,7 @@ defmodule ExEmailTracker.Dashboard.AnalyticsTableLive do
   end
 
   def handle_event("clear_drill_down", _params, socket) do
-    socket = 
+    socket =
       socket
       |> assign(:selected_email_type, nil)
       |> assign(:view_mode, "summary")
@@ -99,7 +103,7 @@ defmodule ExEmailTracker.Dashboard.AnalyticsTableLive do
   end
 
   def handle_event("search", %{"search" => search_term}, socket) do
-    socket = 
+    socket =
       socket
       |> assign(:search_term, search_term)
       |> load_analytics_data()
@@ -110,20 +114,23 @@ defmodule ExEmailTracker.Dashboard.AnalyticsTableLive do
   defp load_analytics_data(socket) do
     start_datetime = DateTime.new!(socket.assigns.start_date, ~T[00:00:00], "Etc/UTC")
     end_datetime = DateTime.new!(socket.assigns.end_date, ~T[23:59:59], "Etc/UTC")
-    
+
     opts = [start_date: start_datetime, end_date: end_datetime]
 
     case socket.assigns.view_mode do
       "detail" ->
         opts_with_search = opts ++ [search: socket.assigns.search_term]
         data = Analytics.get_email_performance_grid(opts_with_search)
-        filtered_data = if socket.assigns.selected_email_type do
-          Enum.filter(data, &(&1.email_type == socket.assigns.selected_email_type))
-        else
-          data
-        end
+
+        filtered_data =
+          if socket.assigns.selected_email_type do
+            Enum.filter(data, &(&1.email_type == socket.assigns.selected_email_type))
+          else
+            data
+          end
+
         assign(socket, :analytics_data, filtered_data)
-      
+
       "summary" ->
         data = Analytics.get_email_performance_summary(opts)
         assign(socket, :analytics_data, data)

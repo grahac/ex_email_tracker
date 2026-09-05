@@ -9,16 +9,15 @@ defmodule ExEmailTracker.Schemas.EmailSend do
   @foreign_key_type :binary_id
 
   schema "ex_email_sends" do
-    field :recipient_id, :integer
-    field :recipient_email, :string
-    field :email_type, :string
-    field :subject, :string
-    field :variant, :string
-    field :metadata, :map, default: %{}
-    field :sent_at, :utc_datetime_usec
+    field(:recipient_id, :integer)
+    field(:recipient_email, :string)
+    field(:email_type, :string)
+    field(:subject, :string)
+    field(:variant, :string)
+    field(:metadata, :map, default: %{})
+    field(:sent_at, :utc_datetime_usec)
 
-    has_many :events, ExEmailTracker.Schemas.EmailEvent,
-      foreign_key: :email_send_id
+    has_many(:events, ExEmailTracker.Schemas.EmailEvent, foreign_key: :email_send_id)
 
     timestamps(type: :utc_datetime_usec)
   end

@@ -11,16 +11,19 @@ defmodule ExEmailTracker.Tracker.LinkRewriter do
   """
   def rewrite(email, email_send) do
     case email.html_body do
-      nil -> 
+      nil ->
         email
-        
+
       html_body ->
-        {rewritten_html, _} = 
-          Regex.replace(@link_regex, html_body, fn full_match, quote, url, attrs, link_text ->
-            rewrite_link(full_match, quote, url, attrs, link_text, email_send)
-          end, global: true)
+        {rewritten_html, _} =
+          Regex.replace(
+            @link_regex,
+            html_body,
+            fn full_match, quote, url, attrs, link_text ->
+              rewrite_link(full_match, quote, url, attrs, link_text, email_send)
+            end, global: true)
           |> then(&{&1, nil})
-        
+
         Map.put(email, :html_body, rewritten_html)
     end
   end
@@ -32,10 +35,10 @@ defmodule ExEmailTracker.Tracker.LinkRewriter do
     else
       # Store link in database
       {:ok, link} = create_email_link(email_send, url, link_text)
-      
+
       # Build tracking URL
       tracking_url = build_tracking_url(email_send.id, link.id, url)
-      
+
       # Reconstruct the link tag
       ~s(<a href=#{quote}#{tracking_url}#{quote}#{attrs}>#{link_text}</a>)
     end
@@ -43,10 +46,10 @@ defmodule ExEmailTracker.Tracker.LinkRewriter do
 
   defp should_skip_url?(url) do
     String.starts_with?(url, "#") ||
-    String.starts_with?(url, "mailto:") ||
-    String.starts_with?(url, "tel:") ||
-    String.contains?(url, "/track/") ||
-    url == ""
+      String.starts_with?(url, "mailto:") ||
+      String.starts_with?(url, "tel:") ||
+      String.contains?(url, "/track/") ||
+      url == ""
   end
 
   defp create_email_link(email_send, url, link_text) do
@@ -55,7 +58,7 @@ defmodule ExEmailTracker.Tracker.LinkRewriter do
       original_url: url,
       link_text: clean_link_text(link_text)
     }
-    
+
     %EmailLink{}
     |> EmailLink.changeset(attrs)
     |> repo().insert()
@@ -71,7 +74,7 @@ defmodule ExEmailTracker.Tracker.LinkRewriter do
   defp build_tracking_url(email_send_id, link_id, original_url) do
     base_url = ExEmailTracker.base_url()
     encoded_url = Base.url_encode64(original_url, padding: false)
-    
+
     "#{base_url}/track/click/#{email_send_id}/#{link_id}?u=#{encoded_url}"
   end
 

@@ -9,20 +9,21 @@ defmodule ExEmailTracker.Analytics.EventRecorder do
   Records an email event.
   """
   def record_event(email_send_id, event_type, attrs \\ %{}) do
-    attrs = Map.merge(attrs, %{
-      email_send_id: email_send_id,
-      event_type: event_type,
-      occurred_at: attrs[:occurred_at] || DateTime.utc_now()
-    })
+    attrs =
+      Map.merge(attrs, %{
+        email_send_id: email_send_id,
+        event_type: event_type,
+        occurred_at: attrs[:occurred_at] || DateTime.utc_now()
+      })
 
     %EmailEvent{}
     |> EmailEvent.changeset(attrs)
     |> repo().insert()
     |> case do
-      {:ok, event} -> 
+      {:ok, event} ->
         broadcast_event(event)
         {:ok, event}
-        
+
       {:error, changeset} ->
         Logger.warning("Failed to record email event: #{inspect(changeset.errors)}")
         {:error, changeset}

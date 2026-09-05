@@ -8,11 +8,11 @@ defmodule ExEmailTracker.Dashboard.EmailDetailLive do
   def mount(%{"id" => email_send_id}, _session, socket) do
     case Analytics.get_email_details(email_send_id) do
       nil ->
-        {:ok, 
+        {:ok,
          socket
          |> put_flash(:error, "Email not found")
          |> push_navigate(to: "/emails")}
-        
+
       email_details ->
         {:ok, assign(socket, :email_details, email_details)}
     end
