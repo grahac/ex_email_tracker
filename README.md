@@ -2,7 +2,7 @@
 
 [![Hex.pm](https://img.shields.io/hexpm/v/ex_email_tracker.svg)](https://hex.pm/packages/ex_email_tracker)
 [![Documentation](https://img.shields.io/badge/docs-hexdocs-blue.svg)](https://hexdocs.pm/ex_email_tracker)
-[![CI](https://github.com/yourusername/ex_email_tracker/actions/workflows/ci.yml/badge.svg)](https://github.com/yourusername/ex_email_tracker/actions/workflows/ci.yml)
+[![CI](https://github.com/grahac/ex_email_tracker/actions/workflows/ci.yml/badge.svg)](https://github.com/grahac/ex_email_tracker/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 ExEmailTracker provides comprehensive email tracking capabilities for Phoenix/LiveView applications using Swoosh. Track email opens, clicks, and engagement metrics with minimal code changes and includes a ready-to-use analytics dashboard.
@@ -279,5 +279,5 @@ MIT License. See [LICENSE](LICENSE) for details.
 ## Support
 
 - [Documentation](https://hexdocs.pm/ex_email_tracker)
-- [Issue Tracker](https://github.com/yourusername/ex_email_tracker/issues)
-- [Discussions](https://github.com/yourusername/ex_email_tracker/discussions)
+- [Issue Tracker](https://github.com/grahac/ex_email_tracker/issues)
+- [Discussions](https://github.com/grahac/ex_email_tracker/discussions)

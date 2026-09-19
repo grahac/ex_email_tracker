@@ -11,7 +11,7 @@ defmodule ExEmailTracker.MixProject do
       description: "Email tracking for Phoenix/Swoosh applications",
       package: package(),
       docs: docs(),
-      source_url: "https://github.com/yourusername/ex_email_tracker"
+      source_url: "https://github.com/grahac/ex_email_tracker"
     ]
   end
 
@@ -39,8 +39,8 @@ defmodule ExEmailTracker.MixProject do
   defp package do
     [
       licenses: ["MIT"],
-      links: %{"GitHub" => "https://github.com/yourusername/ex_email_tracker"},
-      maintainers: ["Your Name"]
+      links: %{"GitHub" => "https://github.com/grahac/ex_email_tracker"},
+      maintainers: ["Charlie Graham"]
     ]
   end
 
