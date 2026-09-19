@@ -5,6 +5,12 @@ defmodule ExEmailTracker.Plug.TrackOpenTest do
 
   alias ExEmailTracker.Plug.TrackOpen
 
+  setup do
+    # Each test gets its own transaction
+    :ok = Ecto.Adapters.SQL.Sandbox.checkout(ExEmailTracker.TestRepo)
+    :ok
+  end
+
   describe "call/2" do
     test "returns transparent pixel for valid UUID" do
       uuid = Ecto.UUID.generate()
