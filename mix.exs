@@ -4,7 +4,7 @@ defmodule ExEmailTracker.MixProject do
   def project do
     [
       app: :ex_email_tracker,
-      version: "0.1.0",
+      version: "0.1.1",
       elixir: "~> 1.14",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
@@ -25,7 +25,9 @@ defmodule ExEmailTracker.MixProject do
     [
       {:phoenix, "~> 1.7"},
       {:phoenix_live_view, "~> 1.0"},
+      {:ecto, "~> 3.14 and >= 3.14.3"},
       {:ecto_sql, "~> 3.12"},
+      {:phoenix_html, "~> 4.4"},
       {:swoosh, "~> 1.16"},
       {:plug, "~> 1.16"},
       {:jason, "~> 1.4"},
