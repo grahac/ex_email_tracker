@@ -23,7 +23,7 @@ Add `ex_email_tracker` to your list of dependencies in `mix.exs`:
 ```elixir
 def deps do
   [
-    {:ex_email_tracker, "~> 0.1.0"}
+    {:ex_email_tracker, "~> 0.1.1"}
   ]
 end
 ```
